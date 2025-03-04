@@ -1,9 +1,11 @@
+import plotly.graph_objects as go
+import plotly.express as px
 import pandas as pd
 import numpy as np
 import io
 from flask import Flask, render_template, Response
 
-# Define `app` BEFORE using `@app.route()`
+# Define app BEFORE using @app.route()
 app = Flask(__name__)
 
 # Check if the dataset exists before reading
@@ -13,7 +15,25 @@ except FileNotFoundError:
     print("CSV file not found! Make sure '2018-Happiness-Index-Cleaned.csv' exists.")
     df = None  # Prevent crashes if the file is missing
 
-non_numeric_columns = ['Country or region']
+# Route to render a bar chart
+@app.route('/barchart')
+def barchart():
+    if df is None:
+        return "Error: Data file is missing!", 500
+
+    # Create Bar Chart using Plotly Express
+    fig = px.bar(df.head(10),  # Show top 10 countries
+                 x='Country or region',
+                 y='Score',
+                 title='Happiness Score by Country',
+                 labels={'Score': 'Happiness Score', 'Country or region': 'Country'},
+                 color='Score',  # Color based on Score
+                 color_continuous_scale='viridis')
+
+    # Convert to HTML and embed in Flask template
+    chart_html = fig.to_html(full_html=False)
+
+    return render_template('barchart.html', chart=chart_html)
 
 @app.route('/')
 def index():
@@ -27,7 +47,8 @@ def index():
     print("Processing statistics")
     stats_archive = {}
 
-    # Process numeric columns
+# Process numeric columns
+non_numeric_columns = ['Country or region']
     for col in df.columns:
         if col not in non_numeric_columns:
             stats_data = pd.to_numeric(df[col], errors='coerce')
@@ -81,3 +102,6 @@ def userpoll():
 # Run Flask only when the script is executed directly
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
+
+
